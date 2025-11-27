@@ -1,9 +1,6 @@
 Flask
-Flask
 gunicorn
-sendgrid
-Flask-Mail
-Flask-SocketIO
 eventlet
+Flask-SocketIO
+Flask-Mail
 itsdangerous
-

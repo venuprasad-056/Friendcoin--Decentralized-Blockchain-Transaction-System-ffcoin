@@ -597,9 +597,11 @@ def withdraw_mining():
 
 # ------------------------- Run -------------------------
 if __name__ == "__main__":
-    # quick env-checks
     if not app.config['MAIL_PASSWORD'] or not app.config['MAIL_DEFAULT_SENDER']:
         app.logger.warning("SENDGRID_API_KEY and/or SENDER_EMAIL not set in environment. Emails will fail until configured.")
-    # Run locally - use 0.0.0.0 to allow external access if desired (render will bind correctly)
-    socketio.run(app, host="127.0.0.1", port=5000, debug=True)
-# ========================= End of Part 4/4 =========================
+
+    port = int(os.environ.get("PORT", 5000))  # Render gives PORT
+    socketio.run(app, host="0.0.0.0", port=port, debug=True)
+
+
+
