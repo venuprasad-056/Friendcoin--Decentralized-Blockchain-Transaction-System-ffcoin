@@ -1,6 +1,7 @@
 Flask
 gunicorn
-eventlet
-Flask-SocketIO
+sendgrid==6.11.0
 Flask-Mail
+Flask-SocketIO
+eventlet
 itsdangerous
