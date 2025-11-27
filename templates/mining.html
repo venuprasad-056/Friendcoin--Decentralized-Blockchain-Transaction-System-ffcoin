@@ -1,0 +1,266 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Mining - FriendCoin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    /* Glowing mining circle */
+    .mining-circle {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: 6px solid #facc15;
+      animation: pulse 2s infinite ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: auto;
+      position: relative;
+      overflow: visible;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 8px #facc15; }
+      50% { box-shadow: 0 0 32px #facc15; }
+      100% { box-shadow: 0 0 8px #facc15; }
+    }
+
+    /* Mining particle style */
+    .particle {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: #facc15;
+      border-radius: 50%;
+      opacity: 0;
+      pointer-events: none;
+      animation: particleAnim 1.5s linear forwards;
+    }
+
+    @keyframes particleAnim {
+      0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-60px) scale(0.2);
+      }
+    }
+
+    .blink {
+      animation: blinkAnim 1.5s infinite;
+    }
+
+    @keyframes blinkAnim {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+  </style>
+</head>
+
+<body class="bg-slate-900 text-white min-h-screen">
+
+  <!-- NAVBAR -->
+  <nav class="bg-gray-900 px-6 py-4 flex justify-between items-center">
+    <div class="text-yellow-400 text-xl font-bold">FriendCoin Wallet</div>
+    <div class="space-x-4">
+      <a href="/dashboard" class="text-slate-300">Dashboard</a>
+      <a href="/profile" class="text-slate-300">Profile</a>
+      <a href="/explorer" class="text-slate-300">Explorer</a>
+      <a href="/mining" class="text-slate-300">Mining</a>
+      <a href="/logout" class="text-red-400">Logout</a>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="container mx-auto p-8">
+    <div class="bg-slate-800 p-6 rounded-lg">
+
+      <h2 class="text-2xl font-semibold text-yellow-400">Mining</h2>
+      <p class="mt-3 text-slate-400">
+        Mining Rate: 1 FRC every 5 minutes (auto-mining)
+      </p>
+
+      <!-- MINING ANIMATION -->
+      <div class="mt-8 flex flex-col items-center">
+
+        <div id="miningCircle" class="mining-circle hidden">
+          <span class="text-yellow-400 font-bold blink" id="timerText">Mining…</span>
+        </div>
+
+        <p id="statusText" class="text-slate-400 mt-3"></p>
+      </div>
+
+      <div class="mt-6 text-slate-300 text-lg">
+        Mined Balance:
+        <span id="minedBalance" class="text-green-400 font-bold">
+          {{ mining_balance }} FRC
+        </span>
+      </div>
+
+      <!-- BUTTONS -->
+      <div class="mt-6 space-y-3">
+        <button id="startMining" class="w-full bg-green-600 text-black py-2 rounded">
+          Start Mining
+        </button>
+        <button id="stopMining" class="w-full bg-red-600 text-black py-2 rounded">
+          Stop Mining
+        </button>
+      </div>
+
+      <!-- WITHDRAW -->
+      <div class="mt-8">
+        <h3 class="text-lg text-yellow-400">Withdraw Mined Coins</h3>
+
+        <form id="withdrawForm" class="mt-3 space-y-3">
+          <input name="amount" id="withdraw_amount" type="number" step="1"
+            placeholder="Amount to withdraw (min 1)" class="w-full p-2 rounded text-black" required>
+
+          <input name="target_wallet" id="withdraw_wallet"
+            placeholder="Target wallet address" class="w-full p-2 rounded text-black" required>
+
+          <button id="withdrawBtn" type="button"
+            class="w-full bg-yellow-500 text-black py-2 rounded">
+            Withdraw to Wallet
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- SCRIPT -->
+<script>
+let miningTimer = null;
+let countdownTimer = null;
+let miningSeconds = 300;
+
+const miningCircle = document.getElementById("miningCircle");
+const timerText = document.getElementById("timerText");
+const statusText = document.getElementById("statusText");
+const minedBalanceTag = document.getElementById("minedBalance");
+
+/* --- PARTICLE GENERATOR FUNCTION --- */
+function spawnParticle() {
+  const particle = document.createElement("div");
+  particle.classList.add("particle");
+
+  const size = Math.random() * 5 + 4;
+  particle.style.width = size + "px";
+  particle.style.height = size + "px";
+
+  const x = Math.random() * 140 - 70;
+  particle.style.left = 70 + x + "px";
+  particle.style.bottom = "-10px";
+
+  miningCircle.appendChild(particle);
+
+  setTimeout(() => particle.remove(), 1500);
+}
+
+let particleInterval = null;
+
+/* Start particle emitter */
+function startParticles() {
+  if (!particleInterval) {
+    particleInterval = setInterval(spawnParticle, 120);
+  }
+}
+
+/* Stop particle emitter */
+function stopParticles() {
+  clearInterval(particleInterval);
+  particleInterval = null;
+}
+
+document.getElementById("startMining").addEventListener("click", () => {
+  if (miningTimer !== null) {
+    alert("Mining is already running.");
+    return;
+  }
+
+  alert("Mining started… You will earn 1 FRC every 5 minutes.");
+
+  miningSeconds = 300;
+  miningCircle.classList.remove("hidden");
+  startCountdown();
+  startParticles();
+
+  doMining();
+
+  miningTimer = setInterval(() => {
+    miningSeconds = 300;
+    startCountdown();
+    doMining();
+  }, 300000);
+});
+
+document.getElementById("stopMining").addEventListener("click", () => {
+  clearInterval(miningTimer);
+  miningTimer = null;
+
+  clearInterval(countdownTimer);
+  countdownTimer = null;
+
+  stopParticles();
+  miningCircle.classList.add("hidden");
+  statusText.innerText = "Mining stopped.";
+});
+
+async function doMining() {
+  const r = await fetch("/start-mining", {method:"POST"});
+  const j = await r.json();
+
+  if (j.status === "success") {
+    refreshMiningBalance();
+    statusText.innerText = `+${j.mined} FRC mined!`;
+  }
+}
+
+function startCountdown() {
+  if (countdownTimer) clearInterval(countdownTimer);
+
+  countdownTimer = setInterval(() => {
+    miningSeconds--;
+
+    let min = Math.floor(miningSeconds / 60);
+    let sec = miningSeconds % 60;
+
+    timerText.innerText = `${min}:${sec.toString().padStart(2,'0')}`;
+
+    if (miningSeconds <= 0) {
+      clearInterval(countdownTimer);
+    }
+  }, 1000);
+}
+
+async function refreshMiningBalance() {
+  const r = await fetch("/api/wallet/{{ wallet }}");
+  const j = await r.json();
+  minedBalanceTag.innerText = j.mined_balance + " FRC";
+}
+
+document.getElementById("withdrawBtn").addEventListener("click", async () => {
+  const amount = parseInt(document.getElementById("withdraw_amount").value);
+  const wallet = document.getElementById("withdraw_wallet").value.trim();
+
+  if (!wallet || !amount) return alert("Enter wallet and amount");
+  if (amount < 1) return alert("Minimum withdraw is 1 FRC");
+
+  const r = await fetch("/withdraw-mining", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({amount, target_wallet: wallet})
+  });
+
+  const j = await r.json();
+  alert(j.message);
+  refreshMiningBalance();
+});
+</script>
+
+</body>
+</html>

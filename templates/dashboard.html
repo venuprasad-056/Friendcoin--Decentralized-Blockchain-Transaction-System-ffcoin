@@ -1,0 +1,209 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Dashboard - FriendCoin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+
+<body class="bg-slate-900 text-white min-h-screen">
+
+  <!-- NAV -->
+  <nav class="bg-gray-900 px-6 py-4 flex justify-between items-center">
+    <div class="text-yellow-400 text-xl font-bold">FriendCoin Wallet</div>
+    <div class="space-x-4">
+      <a href="/dashboard" class="text-slate-300">Dashboard</a>
+      <a href="/profile" class="text-slate-300">Profile</a>
+      <a href="/explorer" class="text-slate-300">Explorer</a>
+      <a href="/mining" class="text-slate-300">Mining</a>
+      <a href="/logout" class="text-red-400">Logout</a>
+    </div>
+  </nav>
+
+  <main class="container mx-auto p-8">
+
+    <!-- GRID: LEFT = PROFILE CARD | RIGHT = SEND CARD -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+      <!-- LEFT CARD -->
+      <div class="bg-slate-800 p-6 rounded-lg">
+        <h2 class="text-2xl font-semibold text-yellow-400">Welcome, {{ username }} 👋</h2>
+
+        <div class="mt-4">
+          <div class="text-sm text-slate-400">Wallet Address</div>
+          <div class="bg-slate-700 p-2 rounded font-mono mt-2">{{ wallet }}</div>
+        </div>
+
+        <div class="mt-6 text-2xl text-green-400 font-bold" id="balance_display">
+          {{ balance }} FC
+        </div>
+
+        <div class="mt-4 text-blue-400 text-lg font-semibold" id="mined_balance_display">
+          Mined: {{ mined_balance }} FC
+        </div>
+      </div>
+
+      <!-- RIGHT CARD -->
+      <div class="bg-slate-800 p-6 rounded-lg">
+        <h2 class="text-xl font-semibold text-yellow-400">Send FriendCoin</h2>
+
+        <form id="sendForm" class="mt-4 space-y-3">
+          <input id="receiver_wallet" placeholder="Receiver wallet address"
+                 class="w-full p-2 rounded text-black" required>
+
+          <input id="amount" type="number" step="0.01"
+                 placeholder="Amount" class="w-full p-2 rounded text-black" required>
+
+          <button class="w-full bg-yellow-500 text-black py-2 rounded">Send Coins</button>
+        </form>
+      </div>
+
+    </div>
+
+    <!-- TRANSACTION HISTORY -->
+    <div class="mt-8 bg-slate-800 p-6 rounded-lg">
+      <h3 class="text-xl font-semibold text-yellow-400">Transaction History</h3>
+
+      <table class="w-full mt-4 text-left text-sm">
+        <thead class="text-slate-300">
+          <tr>
+            <th class="py-2">Sender</th>
+            <th class="py-2">Receiver</th>
+            <th class="py-2">Amount</th>
+            <th class="py-2">Time</th>
+          </tr>
+        </thead>
+
+        <tbody id="tx_table_body">
+          {% for tx in tx_history %}
+          <tr class="border-t border-slate-700">
+            <td class="py-2 font-mono">{{ tx[0] }}</td>
+            <td class="py-2 font-mono">{{ tx[1] }}</td>
+            <td class="py-2 text-green-400">{{ tx[2] }}</td>
+            <td class="py-2 text-slate-400 text-xs">{{ tx[3] }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+
+
+  <!-- PRIVATE KEY MODAL -->
+  <div id="pk_modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 hidden">
+    <div class="bg-slate-800 p-6 rounded w-full max-w-md">
+      <h3 class="text-yellow-400 text-xl mb-3">Confirm Transaction</h3>
+      <p class="text-slate-300 mb-3">Enter your private key to confirm sending coins.</p>
+
+      <input id="pk_input" type="password" class="w-full p-2 rounded text-black mb-3" placeholder="Private key">
+
+      <div class="flex space-x-3">
+        <button id="pk_confirm" class="flex-1 bg-green-600 text-black py-2 rounded">Confirm & Send</button>
+        <button id="pk_cancel" class="flex-1 bg-red-600 text-black py-2 rounded">Cancel</button>
+      </div>
+
+      <p id="pk_error" class="text-red-400 mt-3 hidden"></p>
+    </div>
+  </div>
+
+
+<script>
+  const socket = io();
+
+  const myWallet = "{{ wallet }}";
+
+  socket.on("update_dashboard", () => {
+    refreshWallet();
+    refreshTxs();
+  });
+
+  async function refreshWallet() {
+    let r = await fetch(`/api/wallet/${myWallet}`);
+    if (!r.ok) return;
+    let j = await r.json();
+
+    document.getElementById("balance_display").innerText = j.balance + " FC";
+    document.getElementById("mined_balance_display").innerText = "Mined: " + j.mined_balance + " FC";
+  }
+
+  async function refreshTxs() {
+    let r = await fetch(`/api/txs/${myWallet}`);
+    if (!r.ok) return;
+    let j = await r.json();
+
+    const tbody = document.getElementById("tx_table_body");
+    tbody.innerHTML = "";
+
+    for (const tx of j.txs) {
+      const tr = document.createElement("tr");
+      tr.className = "border-t border-slate-700";
+      tr.innerHTML = `
+        <td class="py-2 font-mono">${tx.sender}</td>
+        <td class="py-2 font-mono">${tx.receiver}</td>
+        <td class="py-2 text-green-400">${tx.amount}</td>
+        <td class="py-2 text-slate-400 text-xs">${tx.time}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  // ----- SEND FORM -----
+  document.addEventListener("DOMContentLoaded", () => {
+    const sendForm = document.getElementById("sendForm");
+    const modal = document.getElementById("pk_modal");
+    const pkInput = document.getElementById("pk_input");
+    const confirmBtn = document.getElementById("pk_confirm");
+    const cancelBtn = document.getElementById("pk_cancel");
+    const pkError = document.getElementById("pk_error");
+
+    let pending = null;
+
+    sendForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      pending = {
+        receiver_wallet: document.getElementById("receiver_wallet").value.trim(),
+        amount: document.getElementById("amount").value.trim()
+      };
+
+      modal.classList.remove("hidden");
+      pkInput.value = "";
+    });
+
+    cancelBtn.addEventListener("click", () => {
+      modal.classList.add("hidden");
+      pending = null;
+    });
+
+    confirmBtn.addEventListener("click", async () => {
+      const private_key = pkInput.value.trim();
+      if (!private_key) {
+        pkError.textContent = "Enter private key";
+        pkError.classList.remove("hidden");
+        return;
+      }
+
+      let resp = await fetch("/send_ajax", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ ...pending, private_key })
+      });
+
+      let data = await resp.json();
+
+      if (data.status === "success") {
+        modal.classList.add("hidden");
+        refreshWallet();
+        refreshTxs();
+      } else {
+        pkError.textContent = data.message;
+        pkError.classList.remove("hidden");
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

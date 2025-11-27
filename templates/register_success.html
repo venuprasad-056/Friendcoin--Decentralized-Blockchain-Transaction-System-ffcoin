@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Registered - FriendCoin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center">
+  <div class="w-full max-w-lg p-6 bg-slate-800 rounded-lg shadow">
+    <h1 class="text-2xl font-bold mb-4 text-yellow-400">Account Created</h1>
+    <p class="mb-2"><strong>Wallet Address</strong></p>
+    <div class="bg-slate-700 p-2 rounded font-mono break-words">{{ wallet }}</div>
+    <p class="mt-4 mb-2"><strong>Private Key</strong></p>
+    <div class="bg-slate-700 p-2 rounded font-mono break-words text-red-300">{{ private_key }}</div>
+    <p class="mt-4 text-slate-400">Save your private key securely. It will not be shown again.</p>
+    <a href="/login" class="block mt-6 bg-yellow-500 text-black py-2 rounded text-center">Go to Login</a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Login - FriendCoin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center">
+  <div class="w-full max-w-md p-6 bg-slate-800 rounded-lg shadow">
+    <h1 class="text-2xl font-bold mb-4 text-yellow-400">FriendCoin — Login</h1>
+    {% if error %}
+      <div class="bg-red-600 p-2 rounded mb-3 text-black font-semibold">{{ error }}</div>
+    {% endif %}
+    {% if msg %}
+      <div class="bg-green-600 p-2 rounded mb-3 text-black font-semibold">{{ msg }}</div>
+    {% endif %}
+    <form method="post" action="/login" class="space-y-3">
+      <input name="username" placeholder="Username or Email" class="w-full p-2 rounded text-black" required>
+      <input name="password" type="password" placeholder="Password" class="w-full p-2 rounded text-black" required>
+      <button class="w-full bg-yellow-500 text-black py-2 rounded font-semibold">Login</button>
+    </form>
+    <p class="mt-3 text-sm text-slate-400">After entering your login details, an OTP will be sent to your registered email.</p>
+    <p class="mt-3 text-sm text-slate-400">New? <a href="/register" class="text-yellow-400 font-semibold">Create an account</a></p>
+  </div>
+</body>
+</html>
