@@ -597,11 +597,15 @@ def withdraw_mining():
 
 # ------------------------- Run -------------------------
 if __name__ == "__main__":
+    # Warn if email credentials are missing
     if not app.config['MAIL_PASSWORD'] or not app.config['MAIL_DEFAULT_SENDER']:
         app.logger.warning("SENDGRID_API_KEY and/or SENDER_EMAIL not set in environment. Emails will fail until configured.")
 
-    port = int(os.environ.get("PORT", 5000))  # Render gives PORT
-    socketio.run(app, host="0.0.0.0", port=port, debug=True)
+    # Render provides PORT as an environment variable
+    port = int(os.environ.get("PORT", 5000))
+
+    # Run with appropriate host + no debug for Render
+    socketio.run(app, host="0.0.0.0", port=port)
 
 
 
